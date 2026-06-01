@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #8B5CF6;
+  --color-brand-secondary: #0D1117;
+  --color-brand-bg: #07090D;
+  --color-brand-card: #111827;
+  --color-brand-border: rgba(139, 92, 246, 0.12);
+  --color-brand-text-primary: #F3F4F6;
+  --color-brand-text-secondary: #9CA3AF;
+  
+  /* Align existing color tokens to elegant dark purple SaaS look */
+  --color-carbon-dark: #07090D;
+  --color-carbon-card: #111827;
+  --color-carbon-border: rgba(139, 92, 246, 0.12);
+  --color-neon-purple: #8B5CF6;
+  --color-neon-purple-glow: rgba(139, 92, 246, 0.1);
+  
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-display: "Outfit", "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --animate-slide-up: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fade-in 0.4s ease-out forwards;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loadingBar {
+  0% {
+    left: -50%;
+    width: 35%;
+  }
+  50% {
+    left: 40%;
+    width: 50%;
+  }
+  100% {
+    left: 100%;
+    width: 25%;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.8s ease-in-out infinite;
+}
+
+/* Global Reset and Premium Dark-Theme Aesthetics */
+body {
+  background-color: #07090D;
+  color: #F3F4F6;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Force dark overrides for standard elements */
+.app-container {
+  background-color: #07090D !important;
+}
+
+/* Elegant glass and shadow systems in purple theme */
+.premium-glass {
+  background: rgba(17, 24, 39, 0.75) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.15) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.premium-card {
+  background: #111827 !important;
+  border: 1px solid rgba(139, 92, 246, 0.12) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-card:hover {
+  border-color: rgba(139, 92, 246, 0.25) !important;
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.08), 0 4px 24px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Form component corrections to dark style */
+input, select, textarea {
+  background-color: #0D1117 !important;
+  border-color: rgba(139, 92, 246, 0.15) !important;
+  color: #F3F4F6 !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #8B5CF6 !important;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Hide Scrollbar or Modern Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07090D;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B5CF6;
+}
+
+/* Clean up old glow rules to be subtle */
+.glow-text-neon {
+  text-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+  color: #8B5CF6 !important;
+}
+
+.glow-border-neon {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.25) !important;
+}
+
+/* Custom glow purple */
+.glow-purple {
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.15);
+}
+
+.glow-purple-hover:hover {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.25);
+}

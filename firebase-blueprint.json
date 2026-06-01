@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Product item in the inventory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "valorInvestido": { "type": "number" },
+        "valorVenda": { "type": "number" },
+        "frete": { "type": "number" },
+        "taxas": { "type": "number" },
+        "cliente": { "type": "string" },
+        "formaPagamento": { "type": "string" },
+        "status": { "type": "string" },
+        "dataEntrada": { "type": "string" },
+        "dataVenda": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "observacoes": { "type": "string" },
+        "ownerId": { "type": "string", "description": "The UID of the user who owns this product" }
+      },
+      "required": ["id", "name", "category", "valorInvestido", "valorVenda", "frete", "taxas", "cliente", "formaPagamento", "status", "dataEntrada", "ownerId"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "Financial goal for the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "targetAmount": { "type": "number" },
+        "achievedAmount": { "type": "number" },
+        "deadlineMonth": { "type": "string" },
+        "deadlineYear": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "ownerId": { "type": "string", "description": "The UID of the user who owns this goal" }
+      },
+      "required": ["id", "title", "targetAmount", "achievedAmount", "deadlineMonth", "deadlineYear", "createdAt", "ownerId"]
+    },
+    "TradeNotification": {
+      "title": "TradeNotification",
+      "description": "Notifications or alerts for the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "read": { "type": "boolean" },
+        "ownerId": { "type": "string", "description": "The UID of the user who owns this notification" }
+      },
+      "required": ["id", "title", "message", "type", "timestamp", "read", "ownerId"]
+    }
+  },
+  "firestore": {
+    "products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Stock inventory products"
+    },
+    "goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "Monthly or annual financial goals"
+    },
+    "notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/TradeNotification" },
+      "description": "Notifications of activities or alerts"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "RevendaX",
+  "description": "Controle total das suas vendas e revendas em uma única plataforma",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
