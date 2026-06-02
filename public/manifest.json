@@ -1,22 +1,25 @@
 {
   "short_name": "RevendaX",
-  "name": "RevendaX",
+  "name": "RevendaX — Controle de Revendas",
   "description": "Controle total das suas vendas e revendas em uma única plataforma",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=192&h=192&fit=crop",
+      "src": "/icons/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=512&h=512&fit=crop",
+      "src": "/icons/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
+  "scope": "/",
   "background_color": "#07090D",
   "theme_color": "#07090D",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait-primary"
 }

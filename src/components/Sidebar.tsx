@@ -10,7 +10,8 @@ import {
   Rocket, 
   Settings, 
   Smartphone, 
-  ChevronRight 
+  ChevronRight,
+  LogOut
 } from "lucide-react";
 import { BrandLogoCompact } from "./BrandLogo";
 import { triggerAudio } from "../hooks/useGoals";
@@ -24,6 +25,7 @@ interface SidebarProps {
   handleLogout: () => void;
   soundEnabled: boolean;
   onOpenInstallGuide: () => void;
+  userPlan: "free" | "pro" | "premium" | "empresarial";
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -35,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   handleLogout,
   soundEnabled,
   onOpenInstallGuide,
+  userPlan,
 }) => {
   return (
     <AnimatePresence>
@@ -86,12 +89,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
                 <div className="truncate flex-1 min-w-0">
-                  <h4 className="text-xs font-sans font-bold text-white truncate leading-none mb-1">
-                    {userProfile?.name || "Xavier Brick"}
-                  </h4>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <h4 className="text-xs font-sans font-bold text-white truncate leading-none">
+                      {userProfile?.name || "Xavier Brick"}
+                    </h4>
+                  </div>
                   <p className="text-[10.5px] text-slate-450 truncate leading-none m-0 font-normal tracking-wide">
                     {userProfile?.email || "usuario@revendax.com"}
                   </p>
+
+                  {/* Badge de plano — só aparece se não for free */}
+                  {userPlan !== "free" && (() => {
+                    const planConfig = {
+                      pro: {
+                        label: "PRO",
+                        bg: "bg-gradient-to-r from-blue-600 to-blue-500",
+                        glow: "shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+                        icon: "⚡",
+                      },
+                      premium: {
+                        label: "PREMIUM",
+                        bg: "bg-gradient-to-r from-purple-600 to-purple-500",
+                        glow: "shadow-[0_0_8px_rgba(139,92,246,0.5)]",
+                        icon: "✦",
+                      },
+                      empresarial: {
+                        label: "EMPRESARIAL",
+                        bg: "bg-gradient-to-r from-amber-500 to-orange-500",
+                        glow: "shadow-[0_0_8px_rgba(245,158,11,0.5)]",
+                        icon: "🏢",
+                      },
+                    }[userPlan];
+
+                    return (
+                      <div className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md text-white text-[9px] font-sans font-black uppercase tracking-widest ${planConfig.bg} ${planConfig.glow}`}>
+                        <span>{planConfig.icon}</span>
+                        <span>{planConfig.label}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -212,7 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 className="flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-left text-slate-500 hover:text-white hover:bg-slate-800/60 cursor-pointer text-xs font-bold transition-all"
               >
-                <ChevronRight size={15} />
+                <LogOut size={15} />
                 <span>Terminar Sessão</span>
               </button>
             </div>

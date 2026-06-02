@@ -18,6 +18,7 @@ interface PerfilProps {
   isOnline: boolean;
   handleLogout: () => void;
   soundEnabled: boolean;
+  setSoundEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const Perfil: React.FC<PerfilProps> = ({
@@ -28,6 +29,7 @@ export const Perfil: React.FC<PerfilProps> = ({
   isOnline,
   handleLogout,
   soundEnabled,
+  setSoundEnabled,
 }) => {
   return (
     <div className="flex flex-col gap-4 animate-fade-in font-sans">
@@ -73,6 +75,34 @@ export const Perfil: React.FC<PerfilProps> = ({
               <span>Gerenciar Plano</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Toggle de Som */}
+      <div className="bg-[#111827] border border-purple-500/15 p-5 rounded-2xl shadow-sm animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="font-sans font-bold text-xs uppercase text-white tracking-wider block">Sons do Sistema</span>
+            <span className="text-[10.5px] text-slate-400 mt-0.5 block">Feedback sonoro nas ações</span>
+          </div>
+          <button
+            onClick={() => {
+              const next = !soundEnabled;
+              setSoundEnabled(next);
+              if (next) {
+                triggerAudio("click", true);
+              }
+            }}
+            className={`relative w-11 h-6 rounded-full border transition-all cursor-pointer ${
+              soundEnabled
+                ? "bg-purple-600 border-purple-500/30"
+                : "bg-[#0D1117] border-purple-500/15"
+            }`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
+              soundEnabled ? "left-[calc(100%-21px)]" : "left-0.5"
+            }`} />
+          </button>
         </div>
       </div>
 

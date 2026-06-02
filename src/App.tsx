@@ -10,7 +10,6 @@ import {
   Rocket, 
   Calendar, 
   Lock,
-  Smartphone,
   Layers,
   Package,
   ShoppingBag,
@@ -28,7 +27,6 @@ import { BrandLogoBig, BrandLogoCompact } from "./components/BrandLogo";
 import { Sidebar } from "./components/Sidebar";
 import { LimitModal } from "./components/LimitModal";
 import { PwaInstallModal } from "./components/PwaInstallModal";
-import { QrCodeModal } from "./components/QrCodeModal";
 import { NotificationsDrawer } from "./components/NotificationsDrawer";
 import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 
@@ -94,7 +92,7 @@ export default function App() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitModalType, setLimitModalType] = useState<"products" | "sales">("products");
   const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [plusHovered, setPlusHovered] = useState(false);
 
   // Forms States (Create / Edit product & Goal)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -141,6 +139,17 @@ export default function App() {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUid(user ? user.uid : null);
+      if (user) {
+        setIsLoggedIn(true);
+        localStorage.setItem("revendax_logged_in", "true");
+        const profile = {
+          name: user.displayName || "Usuário RevendaX Premium",
+          email: user.email || "",
+          picture: user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
+        };
+        setUserProfile(profile);
+        localStorage.setItem("revendax_user", JSON.stringify(profile));
+      }
     });
 
     const timer = setTimeout(() => {
@@ -186,14 +195,19 @@ export default function App() {
   const activeGoal = goals[0] || null;
 
   // Track page navigation changes
+  const tabTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleTabChange = (tab: "dashboard" | "produtos" | "estoque" | "relatorios" | "metas" | "perfil" | "planos") => {
     if (activeTab === tab) return;
+    if (tabTimerRef.current) clearTimeout(tabTimerRef.current);
     triggerAudio("click", soundEnabled);
     setIsSidebarOpen(false);
+    setIsCustomDateModalOpen(false); // Fecha modal de data ao trocar de aba
     setIsTabChanging(true);
-    const timer = setTimeout(() => {
+    tabTimerRef.current = setTimeout(() => {
       setActiveTab(tab);
       setIsTabChanging(false);
+      tabTimerRef.current = null;
     }, 380);
   };
 
@@ -312,6 +326,7 @@ export default function App() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     return () => {
+      if (tabTimerRef.current) clearTimeout(tabTimerRef.current);
       window.removeEventListener("message", handleOAuthMessage);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
@@ -591,9 +606,19 @@ export default function App() {
       imageUrl: formImageUrl,
     };
 
+    let cleanValues = values;
+    if (formStatus === "Em estoque") {
+      // Limpa campos de cliente e pagamento que não se aplicam ao status Em Estoque
+      cleanValues = {
+        ...values,
+        cliente: "",
+        formaPagamento: "",
+      };
+    }
+
     setLoadingAction(editingProduct ? "Atualizando item..." : "Criando item...");
 
-    const success = await saveProduct(values, editingProduct, (type) => {
+    const success = await saveProduct(cleanValues, editingProduct, (type) => {
       setLimitModalType(type);
       setShowLimitModal(true);
     });
@@ -842,6 +867,7 @@ export default function App() {
               userProfile={userProfile}
               soundEnabled={soundEnabled}
               onOpenInstallGuide={() => setShowInstallGuideModal(true)}
+              userPlan={userPlan}
             />
 
             {/* MAIN SHELL VIEWPORT */}
@@ -867,22 +893,15 @@ export default function App() {
                     <span className="text-slate-400 uppercase tracking-widest">{isOnline ? "Online" : "Offline"}</span>
                   </div>
 
-                  {/* Device QR Mirror */}
-                  <button
-                    onClick={() => { triggerAudio("click", soundEnabled); setIsQrModalOpen(true); }}
-                    className="p-2 border border-purple-500/10 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl shadow-sm cursor-pointer transition active:scale-95"
-                    title="Sincronizar Celular / QR Code"
-                  >
-                    <Smartphone size={16} />
-                  </button>
-
                   <button
                     id="show-notif-btn"
                     onClick={() => { triggerAudio("click", soundEnabled); setIsNotificationsOpen(true); }}
                     className="p-2 border border-purple-500/10 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl shadow-sm cursor-pointer transition relative"
                     title="Notificações"
                   >
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500 absolute top-1.5 right-1.5 ring-2 ring-[#0D1117]" />
+                    {notifications.some(n => !n.read) && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500 absolute top-1.5 right-1.5 ring-2 ring-[#0D1117]" />
+                    )}
                     <svg className="w-[16px] h-[16px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
@@ -891,7 +910,7 @@ export default function App() {
               </header>
 
               {/* INNER SCROLLABLE ACTIVE WRAPPER VIEWPORT */}
-              <main className="flex-1 p-5 md:p-7 pb-24 md:pb-7 relative z-10 max-w-5xl mx-auto w-full">
+              <main className="flex-1 p-5 md:p-7 pb-24 lg:pb-7 relative z-10 max-w-5xl mx-auto w-full">
                 <AnimatePresence mode="wait">
                   {activeTab === "dashboard" && (
                     <Dashboard
@@ -1003,7 +1022,7 @@ export default function App() {
             </div>
 
             {/* MOBILE BOTTOM NAVIGATION BAR */}
-            <div className="fixed bottom-0 left-0 right-0 h-[68px] bg-[#0D1117]/95 backdrop-blur-md border-t border-purple-500/10 md:hidden flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)] z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+            <div className="fixed bottom-0 left-0 right-0 h-[68px] bg-[#0D1117]/95 backdrop-blur-md border-t border-purple-500/10 lg:hidden flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)] z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
               {/* TAB 1: Início */}
               <button
                 onClick={() => handleTabChange("dashboard")}
@@ -1013,10 +1032,18 @@ export default function App() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Layers
-                  size={20}
-                  className={activeTab === "dashboard" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
-                />
+                <span
+                  style={{
+                    display: "inline-block",
+                    transformOrigin: "center",
+                    animation: activeTab === "dashboard" ? "navPulse 2s ease-in-out infinite" : "none"
+                  }}
+                >
+                  <Layers
+                    size={20}
+                    className={activeTab === "dashboard" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
+                  />
+                </span>
                 <span className="text-[10px] font-sans font-semibold mt-1">Início</span>
               </button>
 
@@ -1029,10 +1056,18 @@ export default function App() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Package
-                  size={20}
-                  className={activeTab === "estoque" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
-                />
+                <span
+                  style={{
+                    display: "inline-block",
+                    transformOrigin: "center",
+                    animation: activeTab === "estoque" ? "navWiggle 0.4s ease-in-out" : "none"
+                  }}
+                >
+                  <Package
+                    size={20}
+                    className={activeTab === "estoque" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
+                  />
+                </span>
                 <span className="text-[10px] font-sans font-semibold mt-1">Estoque</span>
               </button>
 
@@ -1046,7 +1081,17 @@ export default function App() {
                   className="w-13 h-13 rounded-full bg-gradient-to-tr from-purple-700 to-purple-500 text-white flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.55)] border-4 border-[#07090D] transform active:scale-90 transition-all -translate-y-4 cursor-pointer hover:shadow-[0_0_25px_rgba(168,85,247,0.8)]"
                   title="Cadastrar Novo Produto"
                 >
-                  <Plus size={24} strokeWidth={2.5} />
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      transition: "transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                      transform: plusHovered ? "rotate(90deg)" : "rotate(0deg)"
+                    }}
+                    onMouseEnter={() => setPlusHovered(true)}
+                    onMouseLeave={() => setPlusHovered(false)}
+                  >
+                    <Plus size={24} strokeWidth={2.5} />
+                  </span>
                 </button>
               </div>
 
@@ -1059,10 +1104,18 @@ export default function App() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <ShoppingBag
-                  size={20}
-                  className={activeTab === "produtos" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
-                />
+                <span
+                  style={{
+                    display: "inline-block",
+                    transformOrigin: "center",
+                    animation: activeTab === "produtos" ? "navBounce 0.5s cubic-bezier(0.34,1.56,0.64,1)" : "none"
+                  }}
+                >
+                  <ShoppingBag
+                    size={20}
+                    className={activeTab === "produtos" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
+                  />
+                </span>
                 <span className="text-[10px] font-sans font-semibold mt-1">Vendas</span>
               </button>
 
@@ -1075,10 +1128,18 @@ export default function App() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <PieChart
-                  size={20}
-                  className={activeTab === "relatorios" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
-                />
+                <span
+                  style={{
+                    display: "inline-block",
+                    transformOrigin: "center",
+                    animation: activeTab === "relatorios" ? "navSpin 0.5s cubic-bezier(0.34,1.56,0.64,1)" : "none"
+                  }}
+                >
+                  <PieChart
+                    size={20}
+                    className={activeTab === "relatorios" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
+                  />
+                </span>
                 <span className="text-[10px] font-sans font-semibold mt-1">Relatórios</span>
               </button>
             </div>
@@ -1097,7 +1158,7 @@ export default function App() {
               showLimitModal={showLimitModal}
               setShowLimitModal={setShowLimitModal}
               limitModalType={limitModalType}
-              handleTabChange={handleTabChange}
+              setActiveTab={handleTabChange}
               soundEnabled={soundEnabled}
             />
 
@@ -1107,13 +1168,6 @@ export default function App() {
               dismissPwaPrompt={dismissPwaPrompt}
               showInstallGuideModal={showInstallGuideModal}
               setShowInstallGuideModal={setShowInstallGuideModal}
-              soundEnabled={soundEnabled}
-            />
-
-            <QrCodeModal
-              isQrModalOpen={isQrModalOpen}
-              setIsQrModalOpen={setIsQrModalOpen}
-              firebaseUid={firebaseUid}
               soundEnabled={soundEnabled}
             />
 
@@ -1674,89 +1728,138 @@ export default function App() {
 
             {/* HIGH FIDELITY PERIOD CUSTOM INTERVAL MODAL */}
             <AnimatePresence>
-              {isCustomDateModalOpen && (
-                <motion.div 
-                  className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none font-sans"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <motion.div 
-                    className="bg-[#111827] border border-purple-500/15 rounded-3xl p-5 w-full max-w-[270px] relative shadow-2xl text-center"
-                    initial={{ scale: 0.93 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0.93 }}
-                    transition={{ type: "spring", damping: 25 }}
-                  >
-                    <button
-                      onClick={() => { triggerAudio("click", soundEnabled); setIsCustomDateModalOpen(false); }}
-                      className="absolute top-3.5 right-3.5 p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white cursor-pointer active:scale-90 transition-all"
-                      title="Fechar"
-                    >
-                      <X size={14} />
-                    </button>
+             {isCustomDateModalOpen && (
+               <motion.div
+                 className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 select-none font-sans flex items-center justify-center animate-fade-in"
+                 style={{ padding: '16px' }}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+               >
+                 <motion.div
+                   className="bg-[#111827] border border-purple-500/15 rounded-3xl relative shadow-2xl text-center w-full"
+                   style={{ maxWidth: 'min(300px, calc(100vw - 32px))', width: '100%' }}
+                   initial={{ scale: 0.93, y: 10 }}
+                   animate={{ scale: 1, y: 0 }}
+                   exit={{ scale: 0.93, y: 10 }}
+                   transition={{ type: "spring", damping: 25 }}
+                 >
+                   {/* Padding interno separado para não conflitar com largura */}
+                   <div className="p-5">
 
-                    <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-2.5">
-                      <Calendar size={18} />
-                    </div>
-                    <h4 className="font-display font-black text-white text-xs uppercase tracking-wider mb-1.5">Intervalo Customizado</h4>
-                    <p className="text-[10px] text-slate-400 px-2 leading-relaxed mb-4">
-                      Defina o período desejado para filtrar os resultados:
-                    </p>
+                     {/* Botão fechar */}
+                     <button
+                       onClick={() => { triggerAudio("click", soundEnabled); setIsCustomDateModalOpen(false); }}
+                       className="absolute top-3.5 right-3.5 p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white cursor-pointer active:scale-90 transition-all"
+                       title="Fechar"
+                     >
+                       <X size={14} />
+                     </button>
 
-                    <div className="flex flex-col gap-3 mb-4 text-left font-sans">
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider font-extrabold text-slate-500 mb-1">Data Inicial</label>
-                        <input 
-                          type="date"
-                          value={customStartDate}
-                          onChange={(e) => setCustomStartDate(e.target.value)}
-                          className="w-full bg-[#0D1117] border border-purple-500/10 focus:border-purple-500/30 text-white rounded-xl px-3 py-2 text-xs font-sans outline-none font-medium text-center focus:ring-0"
-                        />
-                      </div>
+                     {/* Ícone */}
+                     <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-2.5">
+                       <Calendar size={18} />
+                     </div>
 
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider font-extrabold text-slate-500 mb-1">Data Final</label>
-                        <input 
-                          type="date"
-                          value={customEndDate}
-                          onChange={(e) => setCustomEndDate(e.target.value)}
-                          className="w-full bg-[#0D1117] border border-purple-500/10 focus:border-purple-500/30 text-white rounded-xl px-3 py-2 text-xs font-sans outline-none font-medium text-center focus:ring-0"
-                        />
-                      </div>
-                    </div>
+                     {/* Título */}
+                     <h4 className="font-sans font-black text-white text-xs uppercase tracking-wider mb-1.5">
+                       Intervalo Customizado
+                     </h4>
+                     <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
+                       Defina o período desejado para filtrar os resultados:
+                     </p>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          triggerAudio("click", soundEnabled);
-                          if (!customStartDate && !customEndDate) {
-                            setTimeFilter("Mês");
-                          } else {
-                            setTimeFilter("Personalizado");
-                          }
-                          setIsCustomDateModalOpen(false);
-                        }}
-                        className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-sans text-[10px] font-extrabold uppercase tracking-widest rounded-xl transition-all active:scale-95 cursor-pointer shadow-md shadow-purple-600/15 animate-pulse animate-pulse-subtle"
-                      >
-                        Filtrar
-                      </button>
-                      <button
-                        onClick={() => {
-                          triggerAudio("click", soundEnabled);
-                          setCustomStartDate("");
-                          setCustomEndDate("");
-                          setTimeFilter("Mês");
-                          setIsCustomDateModalOpen(false);
-                        }}
-                        className="px-3.5 py-2.5 bg-[#0D1117] hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white font-sans text-[10px] font-bold uppercase rounded-xl transition-all active:scale-95 cursor-pointer"
-                      >
-                        Limpar
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
+                     {/* Campos de data */}
+                     <div className="flex flex-col gap-3 mb-4 text-left">
+                       <div>
+                         <label className="block text-[9px] uppercase tracking-wider font-extrabold text-slate-500 mb-1">
+                           Data Inicial
+                         </label>
+                         <div className="relative w-full block">
+                           <input
+                             type="date"
+                             value={customStartDate}
+                             onChange={(e) => setCustomStartDate(e.target.value)}
+                             className="w-full bg-[#0D1117] border border-purple-500/10 focus:border-purple-500/30 rounded-xl px-3 py-2 text-xs font-sans outline-none font-medium text-center box-border block relative overflow-hidden cursor-pointer"
+                             style={{
+                               colorScheme: "dark",
+                               color: customStartDate ? "#ffffff" : "#6B7280",
+                               maxWidth: "100%",
+                               width: "100%",
+                               display: "block",
+                               minHeight: "unset",
+                               height: "36px",
+                               lineHeight: "normal",
+                               WebkitAppearance: "none",
+                               appearance: "none",
+                               boxSizing: "border-box",
+                             }}
+                           />
+                         </div>
+                       </div>
+
+                       <div>
+                         <label className="block text-[9px] uppercase tracking-wider font-extrabold text-slate-500 mb-1">
+                           Data Final
+                         </label>
+                         <div className="relative w-full block">
+                           <input
+                             type="date"
+                             value={customEndDate}
+                             onChange={(e) => setCustomEndDate(e.target.value)}
+                             className="w-full bg-[#0D1117] border border-purple-500/10 focus:border-purple-500/30 rounded-xl px-3 py-2 text-xs font-sans outline-none font-medium text-center box-border block relative overflow-hidden cursor-pointer"
+                             style={{
+                               colorScheme: "dark",
+                               color: customEndDate ? "#ffffff" : "#6B7280",
+                               maxWidth: "100%",
+                               width: "100%",
+                               display: "block",
+                               minHeight: "unset",
+                               height: "36px",
+                               lineHeight: "normal",
+                               WebkitAppearance: "none",
+                               appearance: "none",
+                               boxSizing: "border-box",
+                             }}
+                           />
+                         </div>
+                       </div>
+                     </div>
+
+                     {/* Botões */}
+                     <div className="flex gap-2">
+                       <button
+                         onClick={() => {
+                           triggerAudio("click", soundEnabled);
+                           if (!customStartDate && !customEndDate) {
+                             setTimeFilter("Mês");
+                           } else {
+                             setTimeFilter("Personalizado");
+                           }
+                           setIsCustomDateModalOpen(false);
+                         }}
+                         className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-sans text-[10px] font-extrabold uppercase tracking-widest rounded-xl transition-all active:scale-95 cursor-pointer shadow-md shadow-purple-600/15"
+                       >
+                         Filtrar
+                       </button>
+                       <button
+                         onClick={() => {
+                           triggerAudio("click", soundEnabled);
+                           setCustomStartDate("");
+                           setCustomEndDate("");
+                           setTimeFilter("Mês");
+                           setIsCustomDateModalOpen(false);
+                         }}
+                         className="px-3.5 py-2.5 bg-[#0D1117] hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white font-sans text-[10px] font-bold uppercase rounded-xl transition-all active:scale-95 cursor-pointer"
+                       >
+                         Limpar
+                       </button>
+                     </div>
+
+                   </div>
+                 </motion.div>
+               </motion.div>
+             )}
             </AnimatePresence>
 
           </div>

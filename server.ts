@@ -2,11 +2,18 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+const geminiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 5, // máx 5 chamadas por minuto por IP
+  message: { success: false, error: "Muitas requisições. Aguarde 1 minuto." }
+});
 
 // Lazy-initialized Gemini Client
 let aiClient: GoogleGenAI | null = null;
@@ -280,11 +287,12 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
     `);
   } catch (error: any) {
     console.error("Google Auth Error:", error);
+    const msg = process.env.NODE_ENV === "production" ? "Erro interno de autenticação. Tente novamente." : error.message;
     res.status(500).send(`
       <html>
         <body style="background:#07090D; color:#FF3B3B; font-family:sans-serif; text-align:center; padding-top:50px;">
           <h2>Erro de Autenticação</h2>
-          <p>${error.message}</p>
+          <p>${msg}</p>
           <button onclick="window.close()" style="background:#FF3B3B; border:none; color:white; padding:10px 20px; border-radius:8px; cursor:pointer;">Fechar Janela</button>
         </body>
       </html>
@@ -293,8 +301,24 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
 });
 
 // Gemini Endpoint: Smart Financial Analysis & Predictions
-app.post("/api/gemini/analyze", async (req, res) => {
-  const { products, goal, currentMonthSalesCount, currentMonthSalesCost, currentMonthSalesRevenue } = req.body;
+app.post("/api/gemini/analyze", geminiLimiter, async (req, res) => {
+  const rawProducts = Array.isArray(req.body.products) ? req.body.products : [];
+
+  // Sanitize each product to prevent prompt injection or malicious large payload
+  const products = rawProducts.slice(0, 100).map((p: any) => ({
+    name: String(p?.name || "").slice(0, 100).replace(/[^\w\s\-\/\.\(\)]/g, ""),
+    category: String(p?.category || "").slice(0, 50).replace(/[^\w\s\-\/\.]/g, ""),
+    status: String(p?.status || "").slice(0, 30),
+    valorInvestido: Math.max(0, Math.min(Number(p?.valorInvestido) || 0, 9999999)),
+    valorVenda: Math.max(0, Math.min(Number(p?.valorVenda) || 0, 9999999)),
+    frete: Math.max(0, Math.min(Number(p?.frete) || 0, 9999999)),
+    taxas: Math.max(0, Math.min(Number(p?.taxas) || 0, 9999999)),
+  }));
+
+  const goal = Math.max(0, Math.min(Number(req.body.goal) || 0, 99999999));
+  const currentMonthSalesCount = Math.max(0, Math.min(Number(req.body.currentMonthSalesCount) || 0, 1000));
+  const currentMonthSalesCost = Math.max(0, Math.min(Number(req.body.currentMonthSalesCost) || 0, 99999999));
+  const currentMonthSalesRevenue = Math.max(0, Math.min(Number(req.body.currentMonthSalesRevenue) || 0, 99999999));
 
   const client = getGeminiClient();
   if (!client) {
@@ -368,18 +392,23 @@ Forneça a análise inteligente de modo estruturado e dinâmico.`;
     });
   } catch (error: any) {
     console.error("Erro na inteligência do Gemini:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: process.env.NODE_ENV === "production" ? "Erro interno. Tente novamente." : error.message 
+    });
   }
 });
 
 // Gemini Endpoint: Suggest Optimal Price
-app.post("/api/gemini/suggest-price", async (req, res) => {
-  const { name, category, cost, frete, taxas } = req.body;
+app.post("/api/gemini/suggest-price", geminiLimiter, async (req, res) => {
+  // Input sanitization and payload limits
+  const name = String(req.body.name || "").slice(0, 200).replace(/[^\w\s\-\/\.\(\)]/g, "");
+  const category = String(req.body.category || "").slice(0, 100).replace(/[^\w\s\-\/\.]/g, "");
+  const cost = Math.max(0, Math.min(Number(req.body.cost) || 0, 9999999));
+  const frete = Math.max(0, Math.min(Number(req.body.frete) || 0, 999999));
+  const taxas = Math.max(0, Math.min(Number(req.body.taxas) || 0, 999999));
 
-  const costNum = Number(cost) || 0;
-  const freteNum = Number(frete) || 0;
-  const taxasNum = Number(taxas) || 0;
-  const totalCost = costNum + freteNum + taxasNum;
+  const totalCost = cost + frete + taxas;
 
   const client = getGeminiClient();
   if (!client) {
@@ -402,9 +431,9 @@ app.post("/api/gemini/suggest-price", async (req, res) => {
     const prompt = `Sugira o preço de venda ideal para um produto com as seguintes características para arbitragem de curto prazo:
 Nome: ${name}
 Categoria: ${category}
-Preço de custo pago: R$ ${costNum}
-Frete adicional: R$ ${freteNum}
-Taxas/impostos: R$ ${taxasNum}
+Preço de custo pago: R$ ${cost}
+Frete adicional: R$ ${frete}
+Taxas/impostos: R$ ${taxas}
 Custo total envolvido: R$ ${totalCost}
 
 Forneça um JSON com a seguinte estrutura:
@@ -452,7 +481,10 @@ Forneça um JSON com a seguinte estrutura:
     }
   } catch (error: any) {
     console.error("Erro na sugestão de preço:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: process.env.NODE_ENV === "production" ? "Erro interno. Tente novamente." : error.message 
+    });
   }
 });
 

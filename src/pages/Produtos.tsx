@@ -95,33 +95,15 @@ export const Produtos: React.FC<ProdutosProps> = ({
               }}
               className="w-full bg-[#0D1117] border border-purple-500/15 py-2 px-3.5 rounded-xl text-[10.5px] font-sans font-semibold text-slate-300 focus:outline-none focus:border-purple-500 focus:bg-[#0D1117] appearance-none cursor-pointer"
             >
-              <option value="Todas" className="bg-[#111827] text-white">
-                Categorias (Todas)
-              </option>
-              <option value="Apple/iPhones" className="bg-[#111827] text-white">
-                Apple/iPhones
-              </option>
-              <option value="iPad/Apple Watch" className="bg-[#111827] text-white">
-                iPad/Apple Watch
-              </option>
-              <option value="Xiaomi/Redmi" className="bg-[#111827] text-white">
-                Xiaomi/Redmi
-              </option>
-              <option value="Xiaomi/POCO" className="bg-[#111827] text-white">
-                Xiaomi/POCO
-              </option>
-              <option value="Smartphones Outros" className="bg-[#111827] text-white">
-                Smartphones Outros
-              </option>
-              <option value="Eletrônicos/Consoles" className="bg-[#111827] text-white">
-                Eletrônicos/Consoles
-              </option>
-              <option value="Veículos/Motos/Carros" className="bg-[#111827] text-white">
-                Veículos/Motos/Carros
-              </option>
-              <option value="Importados Relógios" className="bg-[#111827] text-white">
-                Importados Relógios
-              </option>
+              <option value="Todas" className="bg-[#111827] text-white">Categorias (Todas)</option>
+              <option value="Apple/iPhones" className="bg-[#111827] text-white">Apple/iPhones</option>
+              <option value="Celulares/Android" className="bg-[#111827] text-white">Celulares/Android</option>
+              <option value="Games/Consoles" className="bg-[#111827] text-white">Games/Consoles</option>
+              <option value="Acessórios Premium" className="bg-[#111827] text-white">Acessórios Premium</option>
+              <option value="Veículos" className="bg-[#111827] text-white">Veículos</option>
+              <option value="Eletrodomésticos" className="bg-[#111827] text-white">Eletrodomésticos</option>
+              <option value="Colecionáveis/Moda" className="bg-[#111827] text-white">Colecionáveis/Moda</option>
+              <option value="Outros" className="bg-[#111827] text-white">Outros</option>
             </select>
             <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-slate-400">
               <Filter size={10} />
