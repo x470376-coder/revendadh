@@ -44,8 +44,9 @@ export const exportToCSV = (products: Product[], filename: string = "revendax-ve
       ];
     });
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement("a");
