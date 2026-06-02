@@ -1162,15 +1162,6 @@ export default function App() {
               soundEnabled={soundEnabled}
             />
 
-            <PwaInstallModal
-              showPwaPrompt={showPwaPrompt}
-              handlePwaInstall={handlePwaInstall}
-              dismissPwaPrompt={dismissPwaPrompt}
-              showInstallGuideModal={showInstallGuideModal}
-              setShowInstallGuideModal={setShowInstallGuideModal}
-              soundEnabled={soundEnabled}
-            />
-
             <DeleteConfirmModal
               isOpen={!!productToDelete}
               onClose={() => setProductToDelete(null)}
@@ -1865,6 +1856,15 @@ export default function App() {
           </div>
         )}
       </div>
+
+      <PwaInstallModal
+        showPwaPrompt={showPwaPrompt}
+        handlePwaInstall={handlePwaInstall}
+        dismissPwaPrompt={dismissPwaPrompt}
+        showInstallGuideModal={showInstallGuideModal}
+        setShowInstallGuideModal={setShowInstallGuideModal}
+        soundEnabled={soundEnabled}
+      />
     </div>
   );
 }

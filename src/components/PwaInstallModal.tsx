@@ -4,18 +4,68 @@ import { X, Smartphone } from "lucide-react";
 import { triggerAudio } from "../hooks/useGoals";
 
 interface PwaInstallModalProps {
+  showPwaPrompt: boolean;
+  handlePwaInstall: () => void;
+  dismissPwaPrompt: () => void;
   showInstallGuideModal: boolean;
   setShowInstallGuideModal: (show: boolean) => void;
   soundEnabled: boolean;
 }
 
 export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
+  showPwaPrompt,
+  handlePwaInstall,
+  dismissPwaPrompt,
   showInstallGuideModal,
   setShowInstallGuideModal,
   soundEnabled,
 }) => {
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
+        {showPwaPrompt && (
+          <motion.div
+            className="fixed bottom-20 left-3 right-3 md:bottom-6 md:left-auto md:right-4 md:w-96 z-[105] font-sans h-fit max-h-fit pointer-events-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <div className="bg-[#111827] border border-purple-500/20 rounded-2xl p-4
+              flex items-center gap-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] h-fit max-h-fit">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20
+                flex items-center justify-center text-purple-400 shrink-0">
+                <Smartphone size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-white leading-none mb-0.5">
+                  Instalar RevendaX
+                </p>
+                <p className="text-[10px] text-slate-400 leading-none">
+                  Adicione à tela inicial para acesso rápido
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => { triggerAudio("click", soundEnabled); handlePwaInstall(); }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-[10px]
+                    font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all active:scale-95"
+                >
+                  Instalar
+                </button>
+                <button
+                  onClick={() => { triggerAudio("click", soundEnabled); dismissPwaPrompt(); }}
+                  className="text-slate-400 hover:text-white p-1.5 rounded-lg
+                    hover:bg-slate-800 cursor-pointer transition-all"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
       {showInstallGuideModal && (
         <motion.div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[110] select-none font-sans"
@@ -92,5 +142,6 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 };

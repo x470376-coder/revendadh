@@ -157,7 +157,7 @@ export const Planos: React.FC<PlanosProps> = ({
         {/* CARD 2: PLANO PRO */}
         <div
           className={`bg-[#111827] border-2 ${
-            userPlan === "pro" ? "border-purple-500 shadow-[0_0_20px_rgba(139,92,246,0.15)] bg-slate-900/40" : "border-purple-500"
+            userPlan === "pro" ? "border-purple-500 shadow-[0_0_20px_rgba(139,92,246,0.15)] bg-slate-900/40" : "border-purple-500/20"
           } rounded-2xl p-6 flex flex-col justify-between transition-all duration-350 hover:border-purple-500 transform hover:-translate-y-1.5 relative group overflow-hidden`}
         >
           <div className="absolute top-0 right-0 bg-purple-600 text-white font-sans text-[8px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-bl-xl shadow-md z-10 flex items-center gap-1">

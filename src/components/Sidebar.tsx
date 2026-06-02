@@ -10,7 +10,6 @@ import {
   Rocket, 
   Settings, 
   Smartphone, 
-  ChevronRight,
   LogOut
 } from "lucide-react";
 import { BrandLogoCompact } from "./BrandLogo";
