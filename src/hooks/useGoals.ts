@@ -2,16 +2,7 @@ import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore";
 import { db, OperationType, handleFirestoreError } from "../firebase";
 import { Goal } from "../types";
-import { revendaxAudio } from "../components/AudioEngine";
-
-// Audio system helper
-export const triggerAudio = (type: "click" | "success" | "goal" | "stagnation", soundEnabled = true) => {
-  if (!soundEnabled) return;
-  if (type === "click") revendaxAudio.playClick();
-  if (type === "success") revendaxAudio.playSaleSuccess();
-  if (type === "goal") revendaxAudio.playGoalReached();
-  if (type === "stagnation") revendaxAudio.playStagnationAlert();
-};
+import { triggerAudio } from "../utils/audioUtils";
 
 export function useGoals(
   firebaseUid: string | null,
@@ -53,13 +44,6 @@ export function useGoals(
     return () => unsubscribe();
   }, [firebaseUid]);
 
-  // Save changes to localStorage when not logged in
-  useEffect(() => {
-    if (!firebaseUid && goals.length > 0) {
-      localStorage.setItem("revendax_goals", JSON.stringify(goals));
-    }
-  }, [goals, firebaseUid]);
-
   const saveGoal = async (title: string, targetAmount: number, editingGoal: Goal | null) => {
     const titleText = title.trim() || `Ganhar R$ ${targetAmount.toLocaleString("pt-BR")} este mês`;
     const now = new Date();
@@ -82,7 +66,11 @@ export function useGoals(
           "info"
         );
       } else {
-        setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? updatedGoal : g)));
+        setGoals((prev) => {
+          const next = prev.map((g) => (g.id === editingGoal.id ? updatedGoal : g));
+          localStorage.setItem("revendax_goals", JSON.stringify(next));
+          return next;
+        });
         await addNotification(
           "🎯 Meta Atualizada",
           `Sua meta "${titleText}" foi atualizada para R$ ${targetAmount.toLocaleString("pt-BR")}.`,
@@ -108,7 +96,11 @@ export function useGoals(
           "info"
         );
       } else {
-        setGoals((prev) => [newGoal, ...prev]);
+        setGoals((prev) => {
+          const next = [newGoal, ...prev];
+          localStorage.setItem("revendax_goals", JSON.stringify(next));
+          return next;
+        });
         await addNotification(
           "🎯 Meta Criada",
           `Sua nova meta de faturamento é "${titleText}" de R$ ${targetAmount.toLocaleString("pt-BR")}. Rumo ao topo!`,
@@ -129,7 +121,11 @@ export function useGoals(
         "warning"
       );
     } else {
-      setGoals((prev) => prev.filter((g) => g.id !== goalId));
+      setGoals((prev) => {
+        const next = prev.filter((g) => g.id !== goalId);
+        localStorage.setItem("revendax_goals", JSON.stringify(next));
+        return next;
+      });
       await addNotification(
         "🗑️ Meta Apagada",
         "Uma meta financeira foi removida do seu painel.",

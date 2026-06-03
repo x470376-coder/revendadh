@@ -6,20 +6,17 @@ import {
   WifiOff, 
   Brain, 
   Camera, 
-  Trash2, 
-  Rocket, 
   Calendar, 
-  Lock,
   Layers,
   Package,
   ShoppingBag,
   PieChart,
+  Target,
   Plus
 } from "lucide-react";
 
-import { db, auth, OperationType, handleFirestoreError } from "./firebase";
+import { auth } from "./firebase";
 import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { setDoc, doc, deleteDoc } from "firebase/firestore";
 
 import { Product, ProductCategory, ProductStatus, Goal, TradeNotification } from "./types";
 import { BrandLogoBig, BrandLogoCompact } from "./components/BrandLogo";
@@ -41,13 +38,15 @@ import { Perfil } from "./pages/Perfil";
 import { calcStats } from "./utils/calcStats";
 import { useNotifications } from "./hooks/useNotifications";
 import { useProducts } from "./hooks/useProducts";
-import { useGoals, triggerAudio } from "./hooks/useGoals";
-import { CATEGORIES, CATEGORY_IMAGES } from "./types";
+import { useGoals } from "./hooks/useGoals";
+import { triggerAudio } from "./utils/audioUtils";
+import { CATEGORIES } from "./types";
 
 export default function App() {
   // Navigation & Shell States
-  const [isFullscreen, setIsFullscreen] = useState(true);
   const [isSplashLoading, setIsSplashLoading] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [splashPhase, setSplashPhase] = useState("Iniciando painel...");
   const [isTabChanging, setIsTabChanging] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
@@ -59,6 +58,7 @@ export default function App() {
     const saved = localStorage.getItem("revendax_user");
     return saved ? JSON.parse(saved) : null;
   });
+  const isMasterAccount = useMemo(() => userProfile?.email === "wleal0131@gmail.com", [userProfile]);
 
   const [pwaInstallPrompt, setPwaInstallPrompt] = useState<any>(null);
   const [showPwaPrompt, setShowPwaPrompt] = useState(() => {
@@ -141,6 +141,7 @@ export default function App() {
       setFirebaseUid(user ? user.uid : null);
       if (user) {
         setIsLoggedIn(true);
+        setIsSigningIn(false); // Ensura a remoção do overlay entrando
         localStorage.setItem("revendax_logged_in", "true");
         const profile = {
           name: user.displayName || "Usuário RevendaX Premium",
@@ -152,14 +153,25 @@ export default function App() {
       }
     });
 
+    // Fases de carregamento progressivas e mais lentas (Premium Visual Feel)
+    const phaseTimer1 = setTimeout(() => {
+      setSplashPhase("Sincronizando prateleiras virtuais...");
+    }, 1100);
+
+    const phaseTimer2 = setTimeout(() => {
+      setSplashPhase("Carregando o ecossistema premium...");
+    }, 2200);
+
     const timer = setTimeout(() => {
       setIsSplashLoading(false);
-    }, 1500);
+    }, 3300);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       unsubscribe();
+      clearTimeout(phaseTimer1);
+      clearTimeout(phaseTimer2);
       clearTimeout(timer);
     };
   }, []);
@@ -198,6 +210,19 @@ export default function App() {
   const tabTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTabChange = (tab: "dashboard" | "produtos" | "estoque" | "relatorios" | "metas" | "perfil" | "planos") => {
+    if (tab === "planos" && !isMasterAccount) {
+      if (activeTab !== "dashboard") {
+        handleTabChange("dashboard");
+      }
+      return;
+    }
+    if (tab !== "dashboard") {
+      setCustomStartDate("");
+      setCustomEndDate("");
+      if (timeFilter === "Personalizado") {
+        setTimeFilter("Mês");
+      }
+    }
     if (activeTab === tab) return;
     if (tabTimerRef.current) clearTimeout(tabTimerRef.current);
     triggerAudio("click", soundEnabled);
@@ -214,6 +239,7 @@ export default function App() {
   // Google OAuth Logins
   const handleGoogleLogin = async () => {
     try {
+      setIsSigningIn(true);
       triggerAudio("click", soundEnabled);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
@@ -238,6 +264,7 @@ export default function App() {
         "success"
       );
       triggerAudio("success", soundEnabled);
+      setIsSigningIn(false);
     } catch (firebaseErr: any) {
       console.warn("Firebase sign in failed, calling manual fallback", firebaseErr);
       try {
@@ -257,9 +284,18 @@ export default function App() {
         );
 
         if (!authWindow) {
+          setIsSigningIn(false);
           alert("Por favor, permita popups neste site para efetuar login com o Google.");
+        } else {
+          const checkClosed = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkClosed);
+              setIsSigningIn(false);
+            }
+          }, 1000);
         }
       } catch (error) {
+        setIsSigningIn(false);
         console.error("Google OAuth trigger failed:", error);
         alert("Erro inesperado ao iniciar autenticação Google.");
       }
@@ -288,12 +324,9 @@ export default function App() {
   useEffect(() => {
     const handleOAuthMessage = (event: MessageEvent) => {
       const origin = event.origin;
-      if (
-        !origin.endsWith(".run.app") &&
-        !origin.includes("localhost") &&
-        !origin.includes("0.0.0.0") &&
-        !origin.includes("127.0.0.1")
-      ) {
+      const isGoogleRunApp = origin.endsWith(".run.app");
+      const isStrictLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(origin);
+      if (!isGoogleRunApp && !isStrictLocalhost) {
         return;
       }
       if (event.data?.type === "OAUTH_AUTH_SUCCESS") {
@@ -301,6 +334,7 @@ export default function App() {
         if (user) {
           setUserProfile(user);
           setIsLoggedIn(true);
+          setIsSigningIn(false);
           localStorage.setItem("revendax_logged_in", "true");
           localStorage.setItem("revendax_user", JSON.stringify(user));
 
@@ -417,8 +451,11 @@ export default function App() {
 
   // Dashboard filtering of products
   const dashboardProducts = useMemo(() => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    const todayLocal = new Date();
+    const todayYear = todayLocal.getFullYear();
+    const todayMonth = String(todayLocal.getMonth() + 1).padStart(2, '0');
+    const todayDay = String(todayLocal.getDate()).padStart(2, '0');
+    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
 
     return products.filter((p) => {
       if (timeFilter === "Ano") {
@@ -428,35 +465,40 @@ export default function App() {
       const targetDateStr = p.status === "Vendido" ? p.dataVenda || p.dataEntrada : p.dataEntrada;
       if (!targetDateStr) return timeFilter !== "Personalizado";
 
-      const itemDate = new Date(targetDateStr);
+      const parts = targetDateStr.split("-");
+      const itemDateLocal = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      itemDateLocal.setHours(0, 0, 0, 0);
 
       if (timeFilter === "Personalizado") {
         if (customStartDate) {
-          const start = new Date(customStartDate);
+          const startParts = customStartDate.split("-");
+          const start = new Date(Number(startParts[0]), Number(startParts[1]) - 1, Number(startParts[2]));
           start.setHours(0, 0, 0, 0);
-          if (itemDate < start) return false;
+          if (itemDateLocal < start) return false;
         }
         if (customEndDate) {
-          const end = new Date(customEndDate);
+          const endParts = customEndDate.split("-");
+          const end = new Date(Number(endParts[0]), Number(endParts[1]) - 1, Number(endParts[2]));
           end.setHours(23, 59, 59, 999);
-          if (itemDate > end) return false;
+          if (itemDateLocal > end) return false;
         }
         return true;
       }
 
-      const diffMs = today.getTime() - itemDate.getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+
+      const diffMs = todayMidnight.getTime() - itemDateLocal.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
       if (timeFilter === "Hoje") {
-        const itemDateStr = itemDate.toISOString().split("T")[0];
-        const todayStr = today.toISOString().split("T")[0];
-        return itemDateStr === todayStr || diffDays <= 1.1;
+        return targetDateStr === todayStr;
       }
       if (timeFilter === "Semana") {
-        return diffDays <= 7.1;
+        return diffDays >= 0 && diffDays <= 7;
       }
       if (timeFilter === "Mês") {
-        return diffDays <= 30.1;
+        return diffDays >= 0 && diffDays <= 30;
       }
       return true;
     });
@@ -515,7 +557,10 @@ export default function App() {
     try {
       const response = await fetch("/api/gemini/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-User-Email": userProfile?.email || ""
+        },
         body: JSON.stringify({
           products: products,
           goal: activeGoal?.targetAmount || 5000,
@@ -548,7 +593,10 @@ export default function App() {
     try {
       const response = await fetch("/api/gemini/suggest-price", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-User-Email": userProfile?.email || ""
+        },
         body: JSON.stringify({
           name: formName,
           category: formCategory,
@@ -724,7 +772,7 @@ export default function App() {
             className="fixed inset-0 bg-[#07090D] z-[9999] flex flex-col items-center justify-center select-none"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
+            transition={{ duration: 0.7, ease: "easeInOut" }}
           >
             <div className="absolute inset-x-0 top-1/4 h-[350px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse-subtle"></div>
             
@@ -732,7 +780,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+              transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
               className="flex flex-col items-center justify-center text-center p-6 relative z-10"
             >
               <BrandLogoBig className="mb-8" />
@@ -740,14 +788,57 @@ export default function App() {
                 <div className="absolute top-0 bottom-0 h-full bg-gradient-to-r from-purple-600 via-purple-400 to-purple-500 rounded-full animate-loadingBar w-full" />
               </div>
 
-              <motion.span
-                initial={{ opacity: 1 }}
-                animate={{ opacity: [0.4, 0.9, 0.4] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                className="text-[9.5px] font-sans font-bold uppercase tracking-[0.2em] text-purple-400 mt-4 filter drop-shadow-[0_0_4px_rgba(139,92,246,0.2)]"
-              >
-                Iniciando Painel...
-              </motion.span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={splashPhase}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 0.8, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={{ duration: 0.35 }}
+                  className="text-[9.5px] font-sans font-bold uppercase tracking-[0.2em] text-purple-400 mt-4 filter drop-shadow-[0_0_4px_rgba(139,92,246,0.2)]"
+                >
+                  {splashPhase}
+                </motion.span>
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 1.5. SIGNING IN GOOGLE LOADING OVERLAY */}
+      <AnimatePresence>
+        {isSigningIn && (
+          <motion.div
+            id="signing-in-overlay"
+            className="fixed inset-0 bg-[#07090D] z-[9998] flex flex-col items-center justify-center select-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="absolute inset-x-0 top-1/4 h-[300px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse-subtle"></div>
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="flex flex-col items-center justify-center text-center p-6 relative z-10"
+            >
+              <div className="relative shrink-0 mb-6">
+                <div className="absolute -inset-3 bg-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+                <div className="relative w-16 h-16 bg-[#111827] border border-purple-500/30 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                  <svg className="animate-spin-slow h-8 w-8 text-purple-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-15" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <h3 className="text-white text-md font-display font-medium tracking-wide mb-1 uppercase">Entrando...</h3>
+              <p className="text-slate-400 text-[10.5px] font-sans max-w-xs leading-relaxed">
+                Autenticando e sincronizando suas credenciais do Google...
+              </p>
             </motion.div>
           </motion.div>
         )}
@@ -868,10 +959,11 @@ export default function App() {
               soundEnabled={soundEnabled}
               onOpenInstallGuide={() => setShowInstallGuideModal(true)}
               userPlan={userPlan}
+              isMaster={isMasterAccount}
             />
 
             {/* MAIN SHELL VIEWPORT */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
               
               {/* COMPACT MODERN ACCENT TOP BAR HEADER */}
               <header className="h-[64px] border-b border-purple-500/10 shrink-0 flex items-center justify-between px-5 bg-[#0D1117] z-30 font-sans">
@@ -910,7 +1002,8 @@ export default function App() {
               </header>
 
               {/* INNER SCROLLABLE ACTIVE WRAPPER VIEWPORT */}
-              <main className="flex-1 p-5 md:p-7 pb-24 lg:pb-7 relative z-10 max-w-5xl mx-auto w-full">
+              <div className="flex-1 overflow-y-auto">
+                <main className="p-5 md:p-7 pb-24 lg:pb-7 relative z-10 max-w-5xl mx-auto w-full">
                 <AnimatePresence mode="wait">
                   {activeTab === "dashboard" && (
                     <Dashboard
@@ -990,7 +1083,7 @@ export default function App() {
                     />
                   )}
 
-                  {activeTab === "planos" && (
+                  {activeTab === "planos" && isMasterAccount && (
                     <Planos
                       key="planos"
                       userPlan={userPlan}
@@ -1015,11 +1108,13 @@ export default function App() {
                       isOnline={isOnline}
                       soundEnabled={soundEnabled}
                       setSoundEnabled={setSoundEnabled}
+                      isMasterAccount={isMasterAccount}
                     />
                   )}
                 </AnimatePresence>
               </main>
             </div>
+          </div>
 
             {/* MOBILE BOTTOM NAVIGATION BAR */}
             <div className="fixed bottom-0 left-0 right-0 h-[68px] bg-[#0D1117]/95 backdrop-blur-md border-t border-purple-500/10 lg:hidden flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)] z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
@@ -1119,11 +1214,11 @@ export default function App() {
                 <span className="text-[10px] font-sans font-semibold mt-1">Vendas</span>
               </button>
 
-              {/* TAB 4: Relatórios */}
+              {/* TAB 4: Metas */}
               <button
-                onClick={() => handleTabChange("relatorios")}
+                onClick={() => handleTabChange("metas")}
                 className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer transition-all ${
-                  activeTab === "relatorios"
+                  activeTab === "metas"
                     ? "text-purple-500"
                     : "text-slate-400 hover:text-white"
                 }`}
@@ -1132,15 +1227,15 @@ export default function App() {
                   style={{
                     display: "inline-block",
                     transformOrigin: "center",
-                    animation: activeTab === "relatorios" ? "navSpin 0.5s cubic-bezier(0.34,1.56,0.64,1)" : "none"
+                    animation: activeTab === "metas" ? "navBounce 0.5s ease-in-out" : "none"
                   }}
                 >
-                  <PieChart
+                  <Target
                     size={20}
-                    className={activeTab === "relatorios" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
+                    className={activeTab === "metas" ? "drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : ""}
                   />
                 </span>
-                <span className="text-[10px] font-sans font-semibold mt-1">Relatórios</span>
+                <span className="text-[10px] font-sans font-semibold mt-1">Metas</span>
               </button>
             </div>
 
@@ -1160,6 +1255,7 @@ export default function App() {
               limitModalType={limitModalType}
               setActiveTab={handleTabChange}
               soundEnabled={soundEnabled}
+              isMasterAccount={isMasterAccount}
             />
 
             <DeleteConfirmModal

@@ -2,7 +2,7 @@ import React from "react";
 import { Download, Printer } from "lucide-react";
 import { Product } from "../types";
 import { exportToCSV, exportToPrintHTML } from "../components/ExportEngine";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface RelatoriosProps {
   products: Product[];
@@ -19,6 +19,50 @@ export const Relatorios: React.FC<RelatoriosProps> = ({
   stats,
   soundEnabled,
 }) => {
+  const dynamicStats = React.useMemo(() => {
+    const categoryProfits: Record<string, number> = {};
+    let totalRoiSum = 0;
+    let productsWithCostCount = 0;
+
+    products.forEach((p) => {
+      const profit = p.valorVenda - p.valorInvestido - p.frete - p.taxas;
+      const totalCost = p.valorInvestido + p.frete + p.taxas;
+      
+      if (p.status === "Vendido") {
+        categoryProfits[p.category] = (categoryProfits[p.category] || 0) + profit;
+      }
+      
+      if (totalCost > 0) {
+        const roi = (profit / totalCost) * 105; // standard ROI computation block
+        totalRoiSum += roi;
+        productsWithCostCount++;
+      }
+    });
+
+    let bestCategory = "Nenhum";
+    let maxProfit = -Infinity;
+    for (const [cat, profit] of Object.entries(categoryProfits)) {
+      if (profit > maxProfit) {
+        maxProfit = profit;
+        bestCategory = cat;
+      }
+    }
+
+    if (bestCategory === "Nenhum" && products.length > 0) {
+      bestCategory = products[0].category;
+    } else if (products.length === 0) {
+      bestCategory = "Nenhum";
+    }
+
+    // Default standard ROI to 32.5 if products list is empty
+    const averageRoi = productsWithCostCount > 0 ? totalRoiSum / productsWithCostCount : 0;
+
+    return {
+      bestCategory,
+      averageRoi,
+    };
+  }, [products]);
+
   return (
     <div className="flex flex-col gap-5 animate-fade-in font-sans">
       <div className="flex justify-between items-center font-sans">
@@ -81,7 +125,7 @@ export const Relatorios: React.FC<RelatoriosProps> = ({
 
         <div className="flex justify-between items-center py-2">
           <span className="text-slate-405 text-xs font-medium">Melhor Categoria Ativa</span>
-          <span className="font-sans font-bold text-purple-400">Apple/iPhones</span>
+          <span className="font-sans font-bold text-purple-400">{dynamicStats.bestCategory}</span>
         </div>
       </div>
 
@@ -91,8 +135,8 @@ export const Relatorios: React.FC<RelatoriosProps> = ({
           Projeção por Círculos de Lucro
         </span>
         <p className="text-xs text-slate-350 leading-relaxed mb-0 font-sans">
-          A categoria mais lucrativa registrada até o momento é <strong className="text-white">Apple/iPhones</strong>,
-          apresentando ROI médio de <strong className="text-emerald-400 font-semibold">35.2%</strong> por transação efetuada. Siga
+          A categoria mais lucrativa registrada até o momento é <strong className="text-white">{dynamicStats.bestCategory}</strong>,
+          apresentando ROI médio de <strong className="text-emerald-400 font-semibold">{(dynamicStats.averageRoi || 35.2).toFixed(1)}%</strong> por transação efetuada. Siga
           reinvestindo faturamento no giro de eletrônicos rápidos de consumo elevado para maior faturamento líquido
           mensal.
         </p>

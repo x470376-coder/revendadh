@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore";
 import { db, OperationType, handleFirestoreError } from "../firebase";
 import { Product, TradeNotification, CATEGORY_IMAGES } from "../types";
-import { triggerAudio } from "./useGoals"; // We can define a generic triggerAudio here or let useGoals export it
+import { triggerAudio } from "../utils/audioUtils";
 
 export function useProducts(
   firebaseUid: string | null,
@@ -44,13 +44,6 @@ export function useProducts(
 
     return () => unsubscribe();
   }, [firebaseUid]);
-
-  // Save changes to localStorage when not logged in
-  useEffect(() => {
-    if (!firebaseUid && products.length > 0) {
-      localStorage.setItem("revendax_products", JSON.stringify(products));
-    }
-  }, [products, firebaseUid]);
 
   const saveProduct = async (
     formValues: {
@@ -103,6 +96,14 @@ export function useProducts(
 
     setIsSavingProduct(true);
 
+    const getLocalDateString = () => {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     try {
       const savedImg = formValues.imageUrl.trim() || CATEGORY_IMAGES[formValues.category];
 
@@ -117,53 +118,49 @@ export function useProducts(
         cliente: formValues.cliente,
         formaPagamento: formValues.formaPagamento,
         status: formValues.status,
-        dataEntrada: editingProduct?.dataEntrada || new Date().toISOString().split("T")[0],
+        dataEntrada: editingProduct?.dataEntrada || getLocalDateString(),
         imageUrl: savedImg,
         observacoes: formValues.observacoes,
       };
 
       if (formValues.status === "Vendido") {
-        prodData.dataVenda = editingProduct?.dataVenda || new Date().toISOString().split("T")[0];
+        prodData.dataVenda = editingProduct?.dataVenda || getLocalDateString();
       }
 
       if (editingProduct) {
         // Modify
         if (firebaseUid) {
           await setDoc(doc(db, "products", prodData.id), { ...prodData, ownerId: firebaseUid });
-          await addNotification(
-            "Produto Atualizado",
-            `As especificações de "${formValues.name}" foram modificadas com sucesso.`,
-            "info"
-          );
         } else {
-          setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? prodData : p)));
-          await addNotification(
-            "Produto Atualizado",
-            `As especificações de "${formValues.name}" foram modificadas com sucesso.`,
-            "info"
-          );
+          setProducts((prev) => {
+            const next = prev.map((p) => (p.id === editingProduct.id ? prodData : p));
+            localStorage.setItem("revendax_products", JSON.stringify(next));
+            return next;
+          });
         }
+        await addNotification(
+          "Produto Atualizado",
+          `As especificações de "${formValues.name}" foram modificadas com sucesso.`,
+          "info"
+        );
       } else {
         // Create new
         if (firebaseUid) {
           await setDoc(doc(db, "products", prodData.id), { ...prodData, ownerId: firebaseUid });
-          await addNotification(
-            formValues.status === "Vendido" ? "🏆 Nova Venda Registrada!" : "Estoque Adicionado",
-            formValues.status === "Vendido"
-              ? `Arbitragem concluída para "${formValues.name}". Lucro gerado imediato!`
-              : `Item "${formValues.name}" integrado nas prateleiras virtuais.`,
-            formValues.status === "Vendido" ? "success" : "info"
-          );
         } else {
-          setProducts((prev) => [prodData, ...prev]);
-          await addNotification(
-            formValues.status === "Vendido" ? "🏆 Nova Venda Registrada!" : "Estoque Adicionado",
-            formValues.status === "Vendido"
-              ? `Arbitragem concluída para "${formValues.name}". Lucro gerado imediato!`
-              : `Item "${formValues.name}" integrado nas prateleiras virtuais.`,
-            formValues.status === "Vendido" ? "success" : "info"
-          );
+          setProducts((prev) => {
+            const next = [prodData, ...prev];
+            localStorage.setItem("revendax_products", JSON.stringify(next));
+            return next;
+          });
         }
+        await addNotification(
+          formValues.status === "Vendido" ? "🏆 Nova Venda Registrada!" : "Estoque Adicionado",
+          formValues.status === "Vendido"
+            ? `Arbitragem concluída para "${formValues.name}". Lucro gerado imediato!`
+            : `Item "${formValues.name}" integrado nas prateleiras virtuais.`,
+          formValues.status === "Vendido" ? "success" : "info"
+        );
 
         if (formValues.status === "Vendido") {
           triggerAudio("success", soundEnabled);
@@ -188,7 +185,11 @@ export function useProducts(
           "warning"
         );
       } else {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setProducts((prev) => {
+          const next = prev.filter((p) => p.id !== id);
+          localStorage.setItem("revendax_products", JSON.stringify(next));
+          return next;
+        });
         await addNotification(
           "Produto Removido",
           `"${name}" foi excluído permanentemente da plataforma.`,

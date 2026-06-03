@@ -67,9 +67,3 @@ export interface TradeNotification {
   timestamp: string;
   read: boolean;
 }
-
-export interface SupabaseConfig {
-  url: string;
-  anonKey: string;
-  isConnected: boolean;
-}

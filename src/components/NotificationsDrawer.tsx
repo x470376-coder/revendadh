@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { TradeNotification } from "../types";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface NotificationsDrawerProps {
   isNotificationsOpen: boolean;
@@ -27,7 +27,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
     <AnimatePresence>
       {isNotificationsOpen && (
         <motion.div
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-5 z-55 select-none font-sans"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-5 z-55 select-none font-sans"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

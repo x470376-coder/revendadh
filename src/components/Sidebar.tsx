@@ -13,7 +13,7 @@ import {
   LogOut
 } from "lucide-react";
 import { BrandLogoCompact } from "./BrandLogo";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -25,6 +25,7 @@ interface SidebarProps {
   soundEnabled: boolean;
   onOpenInstallGuide: () => void;
   userPlan: "free" | "pro" | "premium" | "empresarial";
+  isMaster?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -37,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   soundEnabled,
   onOpenInstallGuide,
   userPlan,
+  isMaster = false,
 }) => {
   return (
     <AnimatePresence>
@@ -197,19 +199,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Target size={15} />
                   <span>Metas Mensais</span>
                 </button>
-                <button
-                  onClick={() => {
-                    handleTabChange("planos");
-                  }}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left cursor-pointer transition-all border ${
-                    activeTab === "planos"
-                      ? "bg-purple-500/10 text-purple-400 border-purple-500/15 shadow-[0_0_10px_rgba(139,92,246,0.05)] font-bold"
-                      : "border-transparent hover:bg-slate-800/40 hover:text-slate-200"
-                  }`}
-                >
-                  <Rocket size={15} />
-                  <span>Planos & Assinatura</span>
-                </button>
+                {isMaster && (
+                  <button
+                    onClick={() => {
+                      handleTabChange("planos");
+                    }}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left cursor-pointer transition-all border ${
+                      activeTab === "planos"
+                        ? "bg-purple-500/10 text-purple-400 border-purple-500/15 shadow-[0_0_10px_rgba(139,92,246,0.05)] font-bold"
+                        : "border-transparent hover:bg-slate-800/40 hover:text-slate-200"
+                    }`}
+                  >
+                    <Rocket size={15} />
+                    <span>Planos & Assinatura</span>
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     handleTabChange("perfil");

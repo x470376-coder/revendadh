@@ -20,9 +20,7 @@ export const exportToCSV = (products: Product[], filename: string = "revendax-ve
     ];
 
     const rows = products.map((p) => {
-      const profit = p.status === "Vendido" 
-        ? p.valorVenda - p.valorInvestido - p.frete - p.taxas
-        : p.valorVenda - p.valorInvestido - p.frete - p.taxas; // estimated
+      const profit = p.valorVenda - p.valorInvestido - p.frete - p.taxas;
       const totalCost = p.valorInvestido + p.frete + p.taxas;
       const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
@@ -67,7 +65,7 @@ export const exportToPrintHTML = (products: Product[]) => {
   try {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      return alert("Por favor, permita popups neste navegador para poder exportar o relatório de impressão física do Flipix.");
+      return alert("Por favor, permita popups neste navegador para poder exportar o relatório de impressão física do RevendaX.");
     }
 
     const totalInvested = products.reduce((sum, p) => sum + p.valorInvestido, 0);
@@ -101,7 +99,7 @@ export const exportToPrintHTML = (products: Product[]) => {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Flipix - Relatório Geral de Perfomance</title>
+          <title>RevendaX - Relatório Geral de Performance</title>
           <style>
             body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1e293b; padding: 40px; background: #fafafa; }
             h1 { color: #0f172a; margin-bottom: 5px; }
@@ -118,7 +116,7 @@ export const exportToPrintHTML = (products: Product[]) => {
           </style>
         </head>
         <body>
-          <h1>FLIPIX premium intelligence</h1>
+          <h1>REVENDAX premium intelligence</h1>
           <div class="headline">Relatório Consolidado de Margens e Estoque • Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</div>
           
           <div class="kpi-container">
@@ -157,7 +155,7 @@ export const exportToPrintHTML = (products: Product[]) => {
           </table>
 
           <div class="footer">
-            Flipix Inc. • Controle suas revendas e maximize seus lucros • Copyright 2026
+            RevendaX Inc. • Controle suas revendas e maximize seus lucros • Copyright 2026
           </div>
 
           <script>

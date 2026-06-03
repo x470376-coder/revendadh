@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Rocket } from "lucide-react";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface LimitModalProps {
   showLimitModal: boolean;
@@ -9,6 +9,7 @@ interface LimitModalProps {
   limitModalType: "products" | "sales";
   setActiveTab: (tab: "dashboard" | "produtos" | "estoque" | "relatorios" | "metas" | "perfil" | "planos") => void;
   soundEnabled: boolean;
+  isMasterAccount?: boolean;
 }
 
 export const LimitModal: React.FC<LimitModalProps> = ({
@@ -17,6 +18,7 @@ export const LimitModal: React.FC<LimitModalProps> = ({
   limitModalType,
   setActiveTab,
   soundEnabled,
+  isMasterAccount = false,
 }) => {
   if (!showLimitModal) return null;
 
@@ -38,7 +40,7 @@ export const LimitModal: React.FC<LimitModalProps> = ({
 
         <div className="text-center relative z-10 font-sans">
           {/* Header Icon badge */}
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 shadow-[0_0_15px_rgba(139,92,246,0.22)] animate-bounce-subtle">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 shadow-[0_0_15px_rgba(139,92,246,0.22)]">
             <Rocket size={24} className="stroke-[2.5]" />
           </div>
 
@@ -48,9 +50,9 @@ export const LimitModal: React.FC<LimitModalProps> = ({
 
           <p className="text-slate-355 text-xs leading-relaxed mb-6 font-medium">
             {limitModalType === "products" ? (
-              "Você atingiu o limite de 3 produtos do plano gratuito. Assine o Plano PRO para cadastrar produtos ilimitados, gerar relatórios completos e acompanhar seu crescimento sem restrições."
+              "Você atingiu o limite de 3 produtos do plano gratuito. Adquira uma licença premium para cadastrar produtos ilimitados, gerar relatórios completos e acompanhar seu crescimento sem restrições."
             ) : (
-              "Você atingiu o limite de 3 vendas do plano gratuito. Assine o Plano PRO para cadastrar vendas ilimitadas, gerar relatórios completos e acompanhar seu crescimento sem restrições."
+              "Você atingiu o limite de 3 vendas do plano gratuito. Adquira uma licença premium para cadastrar vendas ilimitadas, gerar relatórios completos e acompanhar seu crescimento sem restrições."
             )}
           </p>
 
@@ -72,26 +74,43 @@ export const LimitModal: React.FC<LimitModalProps> = ({
 
           <div className="flex gap-3 text-xs font-sans">
             <button
-              id="limit-modal-now-not-btn"
-              onClick={() => {
-                triggerAudio("click", soundEnabled);
-                setShowLimitModal(false);
-              }}
-              className="flex-1 bg-transparent hover:bg-neutral-850 border border-purple-500/15 text-slate-400 font-extrabold py-3 rounded-xl cursor-pointer transition-all duration-200"
+               id="limit-modal-now-not-btn"
+               onClick={() => {
+                 triggerAudio("click", soundEnabled);
+                 setShowLimitModal(false);
+               }}
+               className="flex-1 bg-transparent hover:bg-neutral-850 border border-purple-500/15 text-slate-400 font-extrabold py-3 rounded-xl cursor-pointer transition-all duration-200"
             >
               Agora Não
             </button>
-            <button
-              id="limit-modal-go-plans-btn"
-              onClick={() => {
-                triggerAudio("click", soundEnabled);
-                setActiveTab("planos");
-                setShowLimitModal(false);
-              }}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-black py-3 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 shadow-lg shadow-purple-600/15"
-            >
-              Ver Planos
-            </button>
+            {isMasterAccount ? (
+              <button
+                id="limit-modal-go-plans-btn"
+                onClick={() => {
+                  triggerAudio("click", soundEnabled);
+                  setActiveTab("planos");
+                  setShowLimitModal(false);
+                }}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-black py-3 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 shadow-lg shadow-purple-600/15"
+              >
+                Ver Planos
+              </button>
+            ) : (
+              <button
+                id="limit-modal-contact-btn"
+                onClick={() => {
+                  triggerAudio("click", soundEnabled);
+                  setShowLimitModal(false);
+                  // Soft notification inside UI to request access
+                  const subject = encodeURIComponent("Solicitação de Upgrade RevendaX");
+                  const body = encodeURIComponent("Olá, gostaria de solicitar um upgrade para minha conta de revendedor no RevendaX.");
+                  window.location.href = `mailto:wleal0131@gmail.com?subject=${subject}&body=${body}`;
+                }}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-extrabold py-3 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 shadow-lg shadow-purple-600/15 text-center flex items-center justify-center"
+              >
+                Contatar Upgrade
+              </button>
+            )}
           </div>
         </div>
       </motion.div>

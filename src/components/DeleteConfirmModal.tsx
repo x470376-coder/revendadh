@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2 } from "lucide-react";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;

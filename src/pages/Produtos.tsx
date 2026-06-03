@@ -2,7 +2,7 @@ import React from "react";
 import { Plus, Search, X, Filter } from "lucide-react";
 import { Product } from "../types";
 import { ProductCard } from "../components/ProductCard";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface ProdutosProps {
   filteredProducts: Product[];

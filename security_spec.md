@@ -1,6 +1,6 @@
 # Security TDD Specification
 
-This document details the Zero-Trust Architecture design, data invariants, and adversarial "Dirty Dozen" payload testing scenarios designed to validate the security model of the Flipix application in Google Firebase.
+This document details the Zero-Trust Architecture design, data invariants, and adversarial "Dirty Dozen" payload testing scenarios designed to validate the security model of the RevendaX application in Google Firebase.
 
 ---
 
@@ -48,7 +48,7 @@ let testEnv: RulesTestEnvironment;
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: "flipix-applet-project",
+    projectId: "revendax-applet-project",
     firestore: {
       rules: require("fs").readFileSync("firestore.rules", "utf8"),
     },

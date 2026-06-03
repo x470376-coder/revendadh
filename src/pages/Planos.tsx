@@ -1,7 +1,7 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
 import { TradeNotification } from "../types";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface PlanosProps {
   userPlan: "free" | "pro" | "premium" | "empresarial";

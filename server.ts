@@ -180,7 +180,7 @@ app.get("/auth/simulated-login", (req, res) => {
           <div class="avatar">U</div>
           <div class="info">
             <div class="name font-sans">Usuário RevendaX Premium</div>
-            <div class="email">x470376@gmail.com</div>
+            <div class="email">wleal0131@gmail.com</div>
           </div>
           <span class="badge">Simulador</span>
         </div>
@@ -194,7 +194,7 @@ app.get("/auth/simulated-login", (req, res) => {
         function selectAccount() {
           const user = {
             name: "Usuário RevendaX Premium",
-            email: "x470376@gmail.com",
+            email: "wleal0131@gmail.com",
             picture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"
           };
           if (window.opener) {
@@ -258,10 +258,27 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
 
     const userData = await userProfileRes.json();
     
+    const cleanEmail = String(userData.email || "").replace(/[^\w\-\.\@]/g, "");
+    const cleanName = String(userData.name || userData.given_name || "Usuário Google")
+      .replace(/[<>&"']/g, "")
+      .slice(0, 100);
+
+    let cleanPicture = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop";
+    if (userData.picture) {
+      try {
+        const parsedUrl = new URL(userData.picture);
+        if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+          cleanPicture = parsedUrl.toString();
+        }
+      } catch (e) {
+        // Fallback to default
+      }
+    }
+    
     const user = {
-      name: userData.name || userData.given_name || "Usuário Google",
-      email: userData.email,
-      picture: userData.picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
+      name: cleanName,
+      email: cleanEmail,
+      picture: cleanPicture
     };
 
     // 3. Post Message to window.opener and close
@@ -302,6 +319,11 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
 
 // Gemini Endpoint: Smart Financial Analysis & Predictions
 app.post("/api/gemini/analyze", geminiLimiter, async (req, res) => {
+  const userEmail = req.headers["x-user-email"];
+  if (!userEmail) {
+    return res.status(401).json({ success: false, error: "Não autorizado. Efetue login para usar a IA." });
+  }
+
   const rawProducts = Array.isArray(req.body.products) ? req.body.products : [];
 
   // Sanitize each product to prevent prompt injection or malicious large payload
@@ -401,6 +423,11 @@ Forneça a análise inteligente de modo estruturado e dinâmico.`;
 
 // Gemini Endpoint: Suggest Optimal Price
 app.post("/api/gemini/suggest-price", geminiLimiter, async (req, res) => {
+  const userEmail = req.headers["x-user-email"];
+  if (!userEmail) {
+    return res.status(401).json({ success: false, error: "Não autorizado. Efetue login para usar a IA." });
+  }
+
   // Input sanitization and payload limits
   const name = String(req.body.name || "").slice(0, 200).replace(/[^\w\s\-\/\.\(\)]/g, "");
   const category = String(req.body.category || "").slice(0, 100).replace(/[^\w\s\-\/\.]/g, "");

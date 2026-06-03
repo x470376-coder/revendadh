@@ -1,6 +1,6 @@
 import React from "react";
 import { Rocket, Database } from "lucide-react";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface UserProfile {
   name?: string;
@@ -19,6 +19,7 @@ interface PerfilProps {
   handleLogout: () => void;
   soundEnabled: boolean;
   setSoundEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  isMasterAccount?: boolean;
 }
 
 export const Perfil: React.FC<PerfilProps> = ({
@@ -30,6 +31,7 @@ export const Perfil: React.FC<PerfilProps> = ({
   handleLogout,
   soundEnabled,
   setSoundEnabled,
+  isMasterAccount = false,
 }) => {
   return (
     <div className="flex flex-col gap-4 animate-fade-in font-sans">
@@ -50,7 +52,7 @@ export const Perfil: React.FC<PerfilProps> = ({
         <div className="font-sans">
           <div className="flex items-center gap-1.5 animate-fade-in">
             <h3 className="font-sans font-extrabold text-lg text-white m-0">
-              {userProfile?.name || "Xavier Brick"}
+              {userProfile?.name || "Premium User"}
             </h3>
             <span className="bg-purple-600 text-white font-sans text-[8.5px] uppercase font-bold px-2 py-0.5 rounded-md leading-none shadow-[0_0_8px_rgba(139,92,246,0.4)]">
               {userPlan === "free" ? "Gratuito" : userPlan === "pro" ? "PRO" : userPlan === "premium" ? "Premium" : "Empresarial"}
@@ -63,17 +65,21 @@ export const Perfil: React.FC<PerfilProps> = ({
             <span className="text-xs text-purple-400 font-bold font-semibold">
               Total faturado: R$ {stats.totalVendidos.toLocaleString("pt-BR")}
             </span>
-            <span className="text-slate-650">|</span>
-            <button
-              onClick={() => {
-                triggerAudio("click", soundEnabled);
-                setActiveTab("planos");
-              }}
-              className="text-xs text-purple-450 hover:text-white font-bold flex items-center gap-1.5 cursor-pointer hover:underline transition-all"
-            >
-              <Rocket size={12} className="text-purple-450" />
-              <span>Gerenciar Plano</span>
-            </button>
+            {isMasterAccount && (
+              <>
+                <span className="text-slate-650">|</span>
+                <button
+                  onClick={() => {
+                    triggerAudio("click", soundEnabled);
+                    setActiveTab("planos");
+                  }}
+                  className="text-xs text-purple-450 hover:text-white font-bold flex items-center gap-1.5 cursor-pointer hover:underline transition-all"
+                >
+                  <Rocket size={12} className="text-purple-450" />
+                  <span>Gerenciar Plano</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Tag, Clock, Wallet, User, Calendar, Edit3, Trash2, ChevronRight } from "lucide-react";
 import { Product } from "../types";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface ProductCardProps {
   product: Product;

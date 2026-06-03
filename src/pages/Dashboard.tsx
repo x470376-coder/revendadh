@@ -20,7 +20,7 @@ import {
   Pie, 
   Cell 
 } from "recharts";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 const COLORS_CHART = ["#00FF66", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#14B8A6", "#EF4444"];
 

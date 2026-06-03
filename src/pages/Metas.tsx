@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { Edit3, Trash2, Target } from "lucide-react";
 import { Goal } from "../types";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface MetasProps {
   setEditingGoal: (goal: Goal | null) => void;

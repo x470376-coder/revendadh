@@ -135,9 +135,10 @@ export const BrandLogoBig: React.FC<{ className?: string }> = ({ className = "" 
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.5, ease: "easeOut" }}
-        className="font-display font-black text-3.5xl tracking-tight text-white mt-1 mb-1 leading-none"
+        className="font-display font-black text-3.5xl tracking-tight text-white mt-1 mb-1 leading-none flex items-center justify-center"
       >
-        Revenda<span className="text-purple-500 drop-shadow-[0_0_10px_rgba(139,92,246,0.6)] animate-pulse">X</span>
+        <span>Revenda</span>
+        <span className="text-purple-400 font-black uppercase text-[1.4em] ml-1 drop-shadow-[0_0_12px_rgba(139,92,246,0.85)] animate-pulse">X</span>
       </motion.h1>
 
       {/* TRACKED SLOGAN with elegant horizontal expansion */}
@@ -188,8 +189,9 @@ export const BrandLogoCompact: React.FC<{ className?: string; size?: "sm" | "md"
         </svg>
       </div>
       <span className="font-display font-black text-sm tracking-tight text-white uppercase flex items-center">
-        Revenda<span className="text-purple-500 font-extrabold font-sans lowercase text-xs ml-0.5">X</span>
-        <span className="text-[8px] text-purple-500/80 font-extrabold align-super ml-0.5">™</span>
+        <span>Revenda</span>
+        <span className="text-purple-400 font-black uppercase text-[1.45em] ml-1 drop-shadow-[0_0_8px_rgba(139,92,246,0.65)] inline-block">X</span>
+        <span className="text-[8px] text-purple-500/80 font-extrabold self-start mt-[-2px] ml-0.5">™</span>
       </span>
     </div>
   );

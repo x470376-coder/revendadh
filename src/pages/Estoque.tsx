@@ -1,6 +1,6 @@
 import React from "react";
 import { Product } from "../types";
-import { triggerAudio } from "../hooks/useGoals";
+import { triggerAudio } from "../utils/audioUtils";
 
 interface EstoqueProps {
   products: Product[];
@@ -64,11 +64,13 @@ export const Estoque: React.FC<EstoqueProps> = ({
         </span>
 
         {activeProducts.map((p) => {
-          const dateObj = new Date(p.dataEntrada);
-          const daysOld = Math.ceil(
-            Math.abs(new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          const isStagnated = daysOld > 10;
+          const entryParts = p.dataEntrada.split("-");
+          const entryDate = new Date(Number(entryParts[0]), Number(entryParts[1]) - 1, Number(entryParts[2]));
+          const todayLocal = new Date();
+          todayLocal.setHours(0, 0, 0, 0);
+          entryDate.setHours(0, 0, 0, 0);
+          const daysOld = Math.max(0, Math.round((todayLocal.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)));
+          const isStagnated = daysOld > 10 && p.status === "Em estoque";
           const totalCost = p.valorInvestido + p.frete + p.taxas;
 
           return (
